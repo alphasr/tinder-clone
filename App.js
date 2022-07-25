@@ -1,27 +1,46 @@
 import React from 'react';
-import {Text, View, ImageBackground, StyleSheet} from 'react-native';
-
+import {View, StyleSheet, Pressable, Text} from 'react-native';
+import Card from './src/components/TinderCard';
+import users from './assets/data/users';
+import Animated, {
+  useAnimatedGestureHandler,
+  useAnimatedStyle,
+  useSharedValue,
+} from 'react-native-reanimated';
+import {
+  PanGestureHandler,
+  GestureHandlerRootView,
+} from 'react-native-gesture-handler';
 const App = () => {
+  const translateX = useSharedValue(0);
+
+  const cardStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateX: translateX.value,
+      },
+    ],
+  }));
+  const gestureHandler = useAnimatedGestureHandler({
+    onStart: (_, context) => {
+      context.startX = translateX.value;
+    },
+    onActive: (event, context) => {
+      translateX.value = context.startX + event.translationX;
+    },
+    onEnd: () => {
+      console.warn('ayla');
+    },
+  });
   return (
     <View style={styles.pageContainer}>
-      <View style={styles.card}>
-        <ImageBackground
-          source={{
-            uri: 'https://notjustdev-dummy.s3.us-east-2.amazonaws.com/avatars/elon.png',
-          }}
-          style={styles.image}>
-          <View style={styles.cardInner}>
-            <Text style={styles.name}>Wario</Text>
-            <Text style={styles.bio}>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed
-              tempor arcu quam, eget maximus quam tempus ac. Donec ac nunc eget
-              massa volutpat elementum eu eget quam. Nam sit amet ante est. Sed
-              non laoreet massa. Duis vel elit ac ipsum dapibus maximus.
-              Phasellus eget augue risus.
-            </Text>
-          </View>
-        </ImageBackground>
-      </View>
+      <GestureHandlerRootView style={styles.pageContainer}>
+        <PanGestureHandler onGestureEvent={gestureHandler}>
+          <Animated.View style={[styles.animatedCard, cardStyle]}>
+            <Card user={users[2]} />
+          </Animated.View>
+        </PanGestureHandler>
+      </GestureHandlerRootView>
     </View>
   );
 };
@@ -32,33 +51,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  image: {
+  animatedCard: {
     width: '100%',
-    height: '100%',
-    borderRadius: 10,
-    overflow: 'hidden',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  cardInner: {
-    padding: 10,
-  },
-  card: {
-    width: '95%',
-    height: '70%',
-    shadowColor: '#000000',
-    shadowOffset: {
-      width: 0,
-      height: 7,
-    },
-    shadowOpacity: 0.36,
-    shadowRadius: 6.68,
-    elevation: 11,
-  },
-  name: {
-    fontsize: 30,
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  bio: {fontsize: 18, color: 'white', lineHeight: 26},
 });
 export default App;
