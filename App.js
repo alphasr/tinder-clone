@@ -1,21 +1,25 @@
-import React, {useState} from 'react';
-import {View, StyleSheet, useWindowDimensions} from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {View, StyleSheet, useWindowDimensions, Image} from 'react-native';
 import Card from './src/components/TinderCard';
 import users from './assets/data/users';
 import Animated, {
   interpolate,
+  runOnJS,
   useAnimatedGestureHandler,
   useAnimatedStyle,
   useDerivedValue,
   useSharedValue,
+  withSpring,
 } from 'react-native-reanimated';
 import {
   PanGestureHandler,
   GestureHandlerRootView,
 } from 'react-native-gesture-handler';
+import LIKE from './assets/images/LIKE.png';
+import NOPE from './assets/images/nope.png';
 
 const ROTATION = 60;
-
+const SWIPE_VELOCITY = 800;
 const App = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [nextIndex, setNextIndex] = useState(currentIndex + 1);
@@ -58,6 +62,14 @@ const App = () => {
       [1, 0.5, 1],
     ),
   }));
+
+  const likeStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(translateX.value, [0, hiddenTranslateX / 6], [0, 1]),
+  }));
+  const nopeStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(translateX.value, [-hiddenTranslateX / 6, 0], [1, 0]),
+  }));
+
   const gestureHandler = useAnimatedGestureHandler({
     onStart: (_, context) => {
       context.startX = translateX.value;
@@ -65,24 +77,53 @@ const App = () => {
     onActive: (event, context) => {
       translateX.value = context.startX + event.translationX;
     },
-    onEnd: () => {
-      console.warn('ayla');
-      setCurrentIndex(1);
+    onEnd: event => {
+      if (Math.abs(event.velocityX) < SWIPE_VELOCITY) {
+        translateX.value = withSpring(0);
+        return;
+      }
+
+      translateX.value = withSpring(
+        hiddenTranslateX * Math.sign(event.velocityX),
+        {},
+        () => runOnJS(setCurrentIndex)(currentIndex + 1),
+      );
     },
   });
+
+  useEffect(() => {
+    translateX.value = 0;
+    setNextIndex(currentIndex + 1);
+  }, [currentIndex, translateX]);
+
   return (
     <View style={styles.pageContainer}>
       <GestureHandlerRootView style={styles.gestContainer}>
-        <View style={styles.nextCardContainer}>
-          <Animated.View style={[styles.animatedCard, nextCardStyle]}>
-            <Card user={nextProfile} />
-          </Animated.View>
-        </View>
-        <PanGestureHandler onGestureEvent={gestureHandler}>
-          <Animated.View style={[styles.animatedCard, cardStyle]}>
-            <Card user={currentProfile} />
-          </Animated.View>
-        </PanGestureHandler>
+        {nextProfile && (
+          <View style={styles.nextCardContainer}>
+            <Animated.View style={[styles.animatedCard, nextCardStyle]}>
+              <Card user={nextProfile} />
+            </Animated.View>
+          </View>
+        )}
+
+        {currentProfile && (
+          <PanGestureHandler onGestureEvent={gestureHandler}>
+            <Animated.View style={[styles.animatedCard, cardStyle]}>
+              <Animated.Image
+                source={LIKE}
+                style={[styles.like, {left: 10}, likeStyle]}
+                resizeMode="contain"
+              />
+              <Animated.Image
+                source={NOPE}
+                style={[styles.like, {right: 10}, nopeStyle]}
+                resizeMode="contain"
+              />
+              <Card user={currentProfile} />
+            </Animated.View>
+          </PanGestureHandler>
+        )}
       </GestureHandlerRootView>
     </View>
   );
@@ -101,15 +142,23 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   animatedCard: {
-    width: '100%',
+    width: '90%',
+    height: '70%',
     justifyContent: 'center',
     alignItems: 'center',
-    flex: 1,
   },
   nextCardContainer: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  like: {
+    width: 150,
+    height: 150,
+    position: 'absolute',
+    top: 10,
+    zIndex: 1,
+    elevation: 1,
   },
 });
 export default App;

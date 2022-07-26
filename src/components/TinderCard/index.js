@@ -32,8 +32,8 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   card: {
-    width: '95%',
-    height: '75%',
+    width: '100%',
+    height: '100%',
     shadowColor: '#000000',
     shadowOffset: {
       width: 0,
